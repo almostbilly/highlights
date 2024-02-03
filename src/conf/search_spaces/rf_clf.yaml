@@ -1,0 +1,2 @@
+models.model.max_depth: range(7, 13, 2)
+# models.model.n_estimators: range(400, 1000, 200)
