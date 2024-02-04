@@ -49,6 +49,10 @@ stages:
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
       size: 1372
+    params:
+      src/conf/params.yaml:
+        processing_config.paste_min_words: 3
+        processing_config.window_size: 5
     outs:
     - path: data/processed/chat_train.csv
       hash: md5
@@ -65,6 +69,10 @@ stages:
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
       size: 1372
+    params:
+      src/conf/params.yaml:
+        processing_config.paste_min_words: 3
+        processing_config.window_size: 5
     outs:
     - path: data/processed/chat_test.csv
       hash: md5
@@ -85,6 +93,9 @@ stages:
       hash: md5
       md5: d71b6d07c1c8248bab81c4814898db55
       size: 4165
+    params:
+      src/conf/params.yaml:
+        undersample_config.random_state: 42
     outs:
     - path: data/resampled/chat_train.csv
       hash: md5
