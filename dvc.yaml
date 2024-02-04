@@ -1,0 +1,59 @@
+vars:
+  - src/conf/params.yaml
+
+stages:
+  collect_train:
+    cmd: python src/data/collector.py src/conf/params.yaml train
+    params:
+      - src/conf/params.yaml:
+        - data_collector_config.video_id_train
+    deps:
+      - src/data/collector.py
+    outs:
+      - ${train_data_paths.raw_data_path.chat_csv}
+      - ${train_data_paths.raw_data_path.clips_csv}
+
+  collect_test:
+    cmd: python src/data/collector.py src/conf/params.yaml test
+    params:
+      - src/conf/params.yaml:
+        - data_collector_config.video_id_test
+    deps:
+      - src/data/collector.py
+    outs:
+      - ${test_data_paths.raw_data_path.chat_csv}
+      - ${test_data_paths.raw_data_path.clips_csv}
+
+  process_train:
+    cmd: python src/features/process.py src/conf/params.yaml train
+    deps:
+      - src/features/process.py
+      - ${train_data_paths.raw_data_path.chat_csv}
+    outs:
+      - ${train_data_paths.processed_data_path.chat_csv}
+
+  process_test:
+    cmd: python src/features/process.py src/conf/params.yaml test
+    deps:
+      - src/features/process.py
+      - ${test_data_paths.raw_data_path.chat_csv}
+    outs:
+      - ${test_data_paths.processed_data_path.chat_csv}
+
+  resample_train:
+    cmd: python src/features/resample.py src/conf/params.yaml train
+    deps:
+      - src/features/resample.py 
+      - ${train_data_paths.processed_data_path.chat_csv}
+      - ${train_data_paths.raw_data_path.clips_csv}
+    outs:
+      - ${train_data_paths.resampled_data_path.chat_csv}
+
+  resample_test:
+    cmd: python src/features/resample.py src/conf/params.yaml test
+    deps:
+      - src/features/resample.py
+      - ${test_data_paths.processed_data_path.chat_csv}
+      - ${test_data_paths.raw_data_path.clips_csv}
+    outs:
+      - ${test_data_paths.resampled_data_path.chat_csv}
