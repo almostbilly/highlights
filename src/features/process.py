@@ -1,17 +1,20 @@
 import logging
 
-import hydra
+import click
 
 from src.features.transformers import ChatTransformer
-from src.io.utils import read_data_csv
+from src.io.utils import read_config, read_data_csv
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="params")
-def main(config):
-    if config.mode == "train":
+@click.command()
+@click.argument("config_path", type=click.Path(exists=True))
+@click.argument("mode")
+def main(config_path, mode):
+    config = read_config(config_path)
+    if mode == "train":
         raw_data_path = config["train_data_paths"]["raw_data_path"]
         processed_data_path = config["train_data_paths"]["processed_data_path"]
-    elif config.mode == "test":
+    elif mode == "test":
         raw_data_path = config["test_data_paths"]["raw_data_path"]
         processed_data_path = config["test_data_paths"]["processed_data_path"]
     else:
