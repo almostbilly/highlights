@@ -28,7 +28,7 @@ data_collector_config:
   video_id_test: '2036131985' # UselessMouth Lethal Company Stream 18.01.2024
   # video_id_train: '1996646721' # Winline Media Poker Day 1
   # video_id_test: '1998428113' # Winline Media Poker Day 3
-  n_batches: 32
+  n_batches: 100
 
 processing_config:
   paste_min_words: 3
