@@ -61,7 +61,7 @@ def eval_metrics(y_test, y_pred):
     return metrics
 
 
-@hydra.main(version_base="1.3.2", config_path="../conf", config_name="train")
+@hydra.main(version_base=None, config_path="../conf", config_name="train")
 def train(config: DictConfig) -> Optional[float]:
     """
     Contains an example training pipeline.
@@ -90,7 +90,7 @@ def train(config: DictConfig) -> Optional[float]:
 
     model_class_components = config.models.model._target_.split(".")
     model_name = model_class_components[-1]
-    mlflow.set_experiment(f"Model {model_name}")
+    mlflow.set_experiment(f"{model_name}")
 
     model = instantiate(config["models"]["model"])
 
@@ -119,11 +119,11 @@ def train(config: DictConfig) -> Optional[float]:
 
         metrics = eval_metrics(y_test, y_pred)
 
-        mlflow.log_metric("Accuracy", metrics["accuracy"])
-        mlflow.log_metric("Precision", metrics["precision"])
-        mlflow.log_metric("Recall", metrics["recall"])
-        mlflow.log_metric("F1", metrics["f1"])
-        mlflow.log_metric("Roc-auc", metrics["roc_auc"])
+        mlflow.log_metric("accuracy", metrics["accuracy"])
+        mlflow.log_metric("precision", metrics["precision"])
+        mlflow.log_metric("recall", metrics["recall"])
+        mlflow.log_metric("f1", metrics["f1"])
+        mlflow.log_metric("roc-auc", metrics["roc_auc"])
 
         signature = infer_signature(X_train, y_pred)
 
