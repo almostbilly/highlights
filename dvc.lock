@@ -123,3 +123,41 @@ stages:
       hash: md5
       md5: 15e102d5883e305f8eb5d911e4ae4c62
       size: 696212
+  train:
+    cmd: python src/models/train.py -m
+    deps:
+    - path: data/resampled/chat_test.csv
+      hash: md5
+      md5: 15e102d5883e305f8eb5d911e4ae4c62
+      size: 696212
+    - path: data/resampled/chat_train.csv
+      hash: md5
+      md5: ad77cd3a78f9a438608ebe45f9fe19b1
+      size: 148931
+    params:
+      src/conf/models/log_reg.yaml:
+        model:
+          _target_: sklearn.linear.LogisticRegression
+      src/conf/models/rf_clf.yaml:
+        model:
+          _target_: sklearn.ensemble.RandomForestClassifier
+          max_depth: 7
+          n_estimators: 400
+      src/conf/models/xgb_clf.yaml:
+        model:
+          _target_: xgboost.XGBClassifier
+          max_depth: 7
+          n_estimators: 400
+          objective: binary:logistic
+          eval_metric: auc
+      src/conf/search_spaces/log_reg.yaml:
+        name: LogisticRegression
+      src/conf/search_spaces/rf_clf.yaml:
+        models.model.max_depth: range(7, 13, 2)
+      src/conf/search_spaces/xgb_clf.yaml:
+        name: XGBClassifier
+        params:
+          max_depth: 9
+          n_estimators: 400
+          objective: binary:logistic
+          eval_metric: auc
