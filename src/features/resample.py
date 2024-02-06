@@ -5,6 +5,7 @@ from typing import List, Tuple
 import hydra
 import numpy as np
 import pandas as pd
+from dotenv import find_dotenv, load_dotenv
 
 from src.features.transformers import ChatTransformer, ClipTransformer
 from src.io.utils import read_data_csv
@@ -66,9 +67,8 @@ def undersample(df: pd.DataFrame, random_state: int) -> pd.DataFrame:
     return df.iloc[undersampled_indices]
 
 
-@hydra.main(version_base="1.3.2", config_path="../conf", config_name="params")
+@hydra.main(version_base=None, config_path="../conf", config_name="params")
 def main(config):
-
     if config.mode == "train":
         raw_data_path = config["train_data_paths"]["raw_data_path"]
         processed_data_path = config["train_data_paths"]["processed_data_path"]
