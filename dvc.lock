@@ -9,16 +9,17 @@ stages:
       size: 1830
     params:
       src/conf/params.yaml:
+        data_collector_config.n_batches: 100
         data_collector_config.video_id_train: '2039157631'
     outs:
     - path: data/raw/chat_train.csv
       hash: md5
-      md5: 7005edcc3e657d71ccae9921a29341e6
-      size: 11654752
+      md5: 7a91c43edc8da8b87c1d787c4d67a2a1
+      size: 11637900
     - path: data/raw/clips_train.csv
       hash: md5
-      md5: 00d78e639cdd0e4a56629d5089a09f20
-      size: 139268
+      md5: 2cce7ff8e5d611f803e38f4b82bca285
+      size: 137041
   collect_test:
     cmd: python src/data/collector.py src/conf/params.yaml test
     deps:
@@ -28,23 +29,24 @@ stages:
       size: 1830
     params:
       src/conf/params.yaml:
+        data_collector_config.n_batches: 100
         data_collector_config.video_id_test: '2036131985'
     outs:
     - path: data/raw/chat_test.csv
       hash: md5
-      md5: bc607d71caf548d62708669347d607b6
-      size: 4320020
+      md5: 3c6a82f5e9b2ed00b80966659560b8be
+      size: 4316048
     - path: data/raw/clips_test.csv
       hash: md5
-      md5: 4297602ab40486be539d53a4fdeee5a5
-      size: 134383
+      md5: 16e26b45725bf94a272a910f5bfcd3bc
+      size: 134996
   process_train:
     cmd: python src/features/process.py src/conf/params.yaml train
     deps:
     - path: data/raw/chat_train.csv
       hash: md5
-      md5: 7005edcc3e657d71ccae9921a29341e6
-      size: 11654752
+      md5: 7a91c43edc8da8b87c1d787c4d67a2a1
+      size: 11637900
     - path: src/features/process.py
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
@@ -56,15 +58,15 @@ stages:
     outs:
     - path: data/processed/chat_train.csv
       hash: md5
-      md5: 5e506634bcfcdb8bf8b07cfdf3fc9f99
-      size: 13050982
+      md5: 02ef8507c530ff2fbd9e2d615640a092
+      size: 13031484
   process_test:
     cmd: python src/features/process.py src/conf/params.yaml test
     deps:
     - path: data/raw/chat_test.csv
       hash: md5
-      md5: bc607d71caf548d62708669347d607b6
-      size: 4320020
+      md5: 3c6a82f5e9b2ed00b80966659560b8be
+      size: 4316048
     - path: src/features/process.py
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
@@ -76,19 +78,19 @@ stages:
     outs:
     - path: data/processed/chat_test.csv
       hash: md5
-      md5: 206100a8076edd1ca480725766267df9
-      size: 4955706
+      md5: 781fc415cdf19fc66286e65b606b612c
+      size: 4951074
   resample_train:
     cmd: python src/features/resample.py src/conf/params.yaml train
     deps:
     - path: data/processed/chat_train.csv
       hash: md5
-      md5: 5e506634bcfcdb8bf8b07cfdf3fc9f99
-      size: 13050982
+      md5: 02ef8507c530ff2fbd9e2d615640a092
+      size: 13031484
     - path: data/raw/clips_train.csv
       hash: md5
-      md5: 00d78e639cdd0e4a56629d5089a09f20
-      size: 139268
+      md5: 2cce7ff8e5d611f803e38f4b82bca285
+      size: 137041
     - path: src/features/resample.py
       hash: md5
       md5: d71b6d07c1c8248bab81c4814898db55
@@ -99,19 +101,19 @@ stages:
     outs:
     - path: data/resampled/chat_train.csv
       hash: md5
-      md5: 8b538a805d75c2969ca8976b6786d2bd
-      size: 148738
+      md5: ad77cd3a78f9a438608ebe45f9fe19b1
+      size: 148931
   resample_test:
     cmd: python src/features/resample.py src/conf/params.yaml test
     deps:
     - path: data/processed/chat_test.csv
       hash: md5
-      md5: 206100a8076edd1ca480725766267df9
-      size: 4955706
+      md5: 781fc415cdf19fc66286e65b606b612c
+      size: 4951074
     - path: data/raw/clips_test.csv
       hash: md5
-      md5: 4297602ab40486be539d53a4fdeee5a5
-      size: 134383
+      md5: 16e26b45725bf94a272a910f5bfcd3bc
+      size: 134996
     - path: src/features/resample.py
       hash: md5
       md5: d71b6d07c1c8248bab81c4814898db55
@@ -119,5 +121,5 @@ stages:
     outs:
     - path: data/resampled/chat_test.csv
       hash: md5
-      md5: 3cd33d9d95212835e20ad9d131138163
-      size: 696227
+      md5: 15e102d5883e305f8eb5d911e4ae4c62
+      size: 696212
