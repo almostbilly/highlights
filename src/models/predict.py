@@ -1,10 +1,7 @@
-import asyncio
 import logging
 import os
-import sys
 import time
 
-import asyncclick as click
 import mlflow
 import numpy as np
 import pandas as pd
@@ -28,16 +25,13 @@ def make_highlight_intervals(sequence: np.ndarray, window_size: int) -> pd.DataF
         end = format_time((e + 1) * window_size)
         intervals.append({"start": start, "end": end})
 
-    output_df = pd.DataFrame(intervals)
-    return output_df
+    return intervals
 
 
 def format_time(seconds: int) -> str:
     return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
 
-@click.command()
-@click.argument("video_id")
 async def predict(video_id: int):
     logger = logging.getLogger("PREDICT")
 
@@ -76,12 +70,11 @@ async def predict(video_id: int):
 
     client = mlflow.MlflowClient()
     model_name = config["models"]["model"]["_target_"].split(".")[-1]
-    optimized_metric = config["optimized_metric"]
-    registered_model_versions = client.search_model_versions(
-        f"name='{model_name}'", order_by=[f"metrics.{optimized_metric} DESC"]
-    )
-    best_registered_model_version = registered_model_versions[0]
-    model_version = dict(best_registered_model_version)["version"]
+    try:
+        last_registered_model = client.search_model_versions(f"name='{model_name}'")[0]
+    except Exception:
+        logger.exception("No available model")
+    model_version = dict(last_registered_model)["version"]
     model_uri = f"models:/{model_name}/{model_version}"
     model = mlflow.pyfunc.load_model(model_uri)
 
@@ -92,9 +85,3 @@ async def predict(video_id: int):
     )
 
     return highlights_df
-
-
-if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(predict())
