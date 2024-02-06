@@ -2,12 +2,12 @@ import logging
 import random
 from typing import List, Tuple
 
-import click
+import hydra
 import numpy as np
 import pandas as pd
 
 from src.features.transformers import ChatTransformer, ClipTransformer
-from src.io.utils import read_config, read_data_csv
+from src.io.utils import read_data_csv
 
 
 def get_classification_labels(
@@ -66,17 +66,14 @@ def undersample(df: pd.DataFrame, random_state: int) -> pd.DataFrame:
     return df.iloc[undersampled_indices]
 
 
-@click.command()
-@click.argument("config_path", type=click.Path(exists=True))
-@click.argument("mode")
-def main(config_path, mode):
-    config = read_config(config_path)
+@hydra.main(version_base="1.3.2", config_path="../conf", config_name="params")
+def main(config):
 
-    if mode == "train":
+    if config.mode == "train":
         raw_data_path = config["train_data_paths"]["raw_data_path"]
         processed_data_path = config["train_data_paths"]["processed_data_path"]
         resampled_data_path = config["train_data_paths"]["resampled_data_path"]
-    elif mode == "test":
+    elif config.mode == "test":
         raw_data_path = config["test_data_paths"]["raw_data_path"]
         processed_data_path = config["test_data_paths"]["processed_data_path"]
         resampled_data_path = config["test_data_paths"]["resampled_data_path"]
@@ -113,7 +110,7 @@ def main(config_path, mode):
     )
 
     # Balance classes
-    if mode == "train":
+    if config.mode == "train":
         random_state = config["undersample_config"]["random_state"]
         chat_resampled = undersample(chat_resampled, random_state)
 
