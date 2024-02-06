@@ -1,0 +1,4 @@
+model:
+  _target_: sklearn.ensemble.RandomForestClassifier
+  max_depth: 7
+  n_estimators: 400

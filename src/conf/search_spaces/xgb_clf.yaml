@@ -1,0 +1,6 @@
+name: XGBClassifier
+params:
+  max_depth: 9
+  n_estimators: 400
+  objective: binary:logistic
+  eval_metric: auc
