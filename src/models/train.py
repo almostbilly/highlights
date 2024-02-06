@@ -1,12 +1,10 @@
 from typing import List, Optional, Tuple
 
 import hydra
-import mlflow
 import numpy as np
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from hydra.utils import instantiate
-from mlflow.models import infer_signature
 from omegaconf import DictConfig
 from sklearn.metrics import (
     accuracy_score,
@@ -16,6 +14,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+import mlflow
+from mlflow.models import infer_signature
 from src.io.utils import read_data_csv
 
 load_dotenv(find_dotenv())
@@ -86,7 +86,9 @@ def train(config: DictConfig) -> Optional[float]:
     X_test, y_test = split_data(chat_test, target)
 
     remote_server_uri = config["mlflow_config"]["remote_server_uri"]
+    remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]
     mlflow.set_tracking_uri(remote_server_uri)
+    mlflow.set_registry_uri(remote_registry_uri)
 
     model_class_components = config.models.model._target_.split(".")
     model_name = model_class_components[-1]

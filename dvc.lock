@@ -14,12 +14,12 @@ stages:
     outs:
     - path: data/raw/chat_train.csv
       hash: md5
-      md5: 7a91c43edc8da8b87c1d787c4d67a2a1
-      size: 11637900
+      md5: 394266f62e38ad3805bb4ce1ed34782a
+      size: 11638194
     - path: data/raw/clips_train.csv
       hash: md5
-      md5: 2cce7ff8e5d611f803e38f4b82bca285
-      size: 137041
+      md5: 750e031288fb5df470d60393765f70f2
+      size: 139259
   collect_test:
     cmd: python src/data/collector.py src/conf/params.yaml test
     deps:
@@ -34,19 +34,19 @@ stages:
     outs:
     - path: data/raw/chat_test.csv
       hash: md5
-      md5: 3c6a82f5e9b2ed00b80966659560b8be
-      size: 4316048
+      md5: 3d5780374084eef01cf73fa4b1606930
+      size: 4316059
     - path: data/raw/clips_test.csv
       hash: md5
-      md5: 16e26b45725bf94a272a910f5bfcd3bc
-      size: 134996
+      md5: 3364593ae9c452ae6f7be3043a4c0ebc
+      size: 134748
   process_train:
     cmd: python src/features/process.py src/conf/params.yaml train
     deps:
     - path: data/raw/chat_train.csv
       hash: md5
-      md5: 7a91c43edc8da8b87c1d787c4d67a2a1
-      size: 11637900
+      md5: 394266f62e38ad3805bb4ce1ed34782a
+      size: 11638194
     - path: src/features/process.py
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
@@ -58,15 +58,15 @@ stages:
     outs:
     - path: data/processed/chat_train.csv
       hash: md5
-      md5: 02ef8507c530ff2fbd9e2d615640a092
-      size: 13031484
+      md5: c0d27f7a4a105995ad80443292031bfa
+      size: 13031499
   process_test:
     cmd: python src/features/process.py src/conf/params.yaml test
     deps:
     - path: data/raw/chat_test.csv
       hash: md5
-      md5: 3c6a82f5e9b2ed00b80966659560b8be
-      size: 4316048
+      md5: 3d5780374084eef01cf73fa4b1606930
+      size: 4316059
     - path: src/features/process.py
       hash: md5
       md5: 00edd32ae94defcf873c7c45a58d944e
@@ -78,19 +78,19 @@ stages:
     outs:
     - path: data/processed/chat_test.csv
       hash: md5
-      md5: 781fc415cdf19fc66286e65b606b612c
-      size: 4951074
+      md5: 309d0f74feeeba3e122be5aaa42a270c
+      size: 4951085
   resample_train:
     cmd: python src/features/resample.py src/conf/params.yaml train
     deps:
     - path: data/processed/chat_train.csv
       hash: md5
-      md5: 02ef8507c530ff2fbd9e2d615640a092
-      size: 13031484
+      md5: c0d27f7a4a105995ad80443292031bfa
+      size: 13031499
     - path: data/raw/clips_train.csv
       hash: md5
-      md5: 2cce7ff8e5d611f803e38f4b82bca285
-      size: 137041
+      md5: 750e031288fb5df470d60393765f70f2
+      size: 139259
     - path: src/features/resample.py
       hash: md5
       md5: d71b6d07c1c8248bab81c4814898db55
@@ -101,19 +101,19 @@ stages:
     outs:
     - path: data/resampled/chat_train.csv
       hash: md5
-      md5: ad77cd3a78f9a438608ebe45f9fe19b1
-      size: 148931
+      md5: d26d79852f0478904d4a67eacf8cc9b4
+      size: 149825
   resample_test:
     cmd: python src/features/resample.py src/conf/params.yaml test
     deps:
     - path: data/processed/chat_test.csv
       hash: md5
-      md5: 781fc415cdf19fc66286e65b606b612c
-      size: 4951074
+      md5: 309d0f74feeeba3e122be5aaa42a270c
+      size: 4951085
     - path: data/raw/clips_test.csv
       hash: md5
-      md5: 16e26b45725bf94a272a910f5bfcd3bc
-      size: 134996
+      md5: 3364593ae9c452ae6f7be3043a4c0ebc
+      size: 134748
     - path: src/features/resample.py
       hash: md5
       md5: d71b6d07c1c8248bab81c4814898db55
@@ -121,19 +121,19 @@ stages:
     outs:
     - path: data/resampled/chat_test.csv
       hash: md5
-      md5: 15e102d5883e305f8eb5d911e4ae4c62
+      md5: 214d4d110713228888cbe5347aedf248
       size: 696212
   train:
     cmd: python src/models/train.py -m
     deps:
     - path: data/resampled/chat_test.csv
       hash: md5
-      md5: 15e102d5883e305f8eb5d911e4ae4c62
+      md5: 214d4d110713228888cbe5347aedf248
       size: 696212
     - path: data/resampled/chat_train.csv
       hash: md5
-      md5: ad77cd3a78f9a438608ebe45f9fe19b1
-      size: 148931
+      md5: d26d79852f0478904d4a67eacf8cc9b4
+      size: 149825
     params:
       src/conf/models/log_reg.yaml:
         model:

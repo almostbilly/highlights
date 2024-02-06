@@ -91,7 +91,6 @@ target/
 # MLFlow
 mlruns
 mlartifacts
-mlflow
 
 # Hydra
 multirun

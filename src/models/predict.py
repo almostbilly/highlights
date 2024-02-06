@@ -5,11 +5,11 @@ import sys
 import time
 
 import asyncclick as click
+import mlflow
 import numpy as np
 import pandas as pd
 from hydra import compose, initialize
 
-import mlflow
 from src.data.parser.chat import ChatParser
 from src.features.resample import add_lag_lead
 from src.features.transformers.chat import ChatTransformer
@@ -70,14 +70,18 @@ async def predict(video_id: int):
     )
 
     remote_server_uri = config["mlflow_config"]["remote_server_uri"]
+    remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]
     mlflow.set_tracking_uri(remote_server_uri)
+    mlflow.set_registry_uri(remote_registry_uri)
+
     client = mlflow.MlflowClient()
     model_name = config["models"]["model"]["_target_"].split(".")[-1]
-    try:
-        last_registered_model = client.search_model_versions(f"name='{model_name}'")[0]
-    except Exception:
-        logger.exception("No available model")
-    model_version = dict(last_registered_model)["version"]
+    optimized_metric = config["optimized_metric"]
+    registered_model_versions = client.search_model_versions(
+        f"name='{model_name}'", order_by=[f"metrics.{optimized_metric} DESC"]
+    )
+    best_registered_model_version = registered_model_versions[0]
+    model_version = dict(best_registered_model_version)["version"]
     model_uri = f"models:/{model_name}/{model_version}"
     model = mlflow.pyfunc.load_model(model_uri)
 

@@ -44,3 +44,4 @@ actualize_config:
   
 mlflow_config:
   remote_server_uri: http://localhost:5000
+  mlflow_registry_uri: http://localhost:5000
