@@ -4,12 +4,10 @@ defaults:
   - models: rf_clf
   - search_spaces@hydra.sweeper.params: ${models}
   - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: grid
 
 hydra:
   sweeper:
-    sampler:
-      _target_: optuna.samplers.TPESampler
-      seed: 123
     direction: maximize
     study_name: model
     storage: null
