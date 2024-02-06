@@ -83,3 +83,6 @@ stages:
     deps:
       - ${train_data_paths.resampled_data_path.chat_csv}
       - ${test_data_paths.resampled_data_path.chat_csv}
+
+  register:
+    cmd: python src/models/register.py
