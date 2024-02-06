@@ -153,7 +153,7 @@ stages:
       src/conf/search_spaces/log_reg.yaml:
         name: LogisticRegression
       src/conf/search_spaces/rf_clf.yaml:
-        models.model.max_depth: range(7, 11, 2)
+        models.model.max_depth: range(7, 13, 2)
       src/conf/search_spaces/xgb_clf.yaml:
         name: XGBClassifier
         params:
@@ -161,5 +161,23 @@ stages:
           n_estimators: 400
           objective: binary:logistic
           eval_metric: auc
+    outs:
+    - path: mlruns/566969222355301129
+      hash: md5
+      md5: 75f731519a31199ecc5976b5745a59c0.dir
+      size: 25533
+      nfiles: 289
   register:
     cmd: python src/models/register.py
+    deps:
+    - path: mlruns/566969222355301129
+      hash: md5
+      md5: 75f731519a31199ecc5976b5745a59c0.dir
+      size: 25533
+      nfiles: 289
+    outs:
+    - path: mlruns/models
+      hash: md5
+      md5: c16a0d26547ba7a110f916396bf9713e.dir
+      size: 590
+      nfiles: 2

@@ -26,6 +26,11 @@ def read_data_csv(
 
 
 def read_config(config_path: str) -> Dict:
-    with open(config_path) as yaml_file:
+    with open(config_path, "r") as yaml_file:
         config = yaml.safe_load(yaml_file)
     return config
+
+
+def write_config(config_path: str, config: Dict):
+    with open(config_path, "w") as yaml_file:
+        yaml.dump(config, yaml_file)

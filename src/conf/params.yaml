@@ -1,47 +1,44 @@
 mode: train
-
+# train paths
 train_data_paths:
-  raw_data_path: 
+  raw_data_path:
     chat_csv: data/raw/chat_train.csv
     clips_csv: data/raw/clips_train.csv
-  processed_data_path: 
+  processed_data_path:
     chat_csv: data/processed/chat_train.csv
     clips_csv: data/processed/clips_train.csv
-  resampled_data_path: 
+  resampled_data_path:
     chat_csv: data/resampled/chat_train.csv
     clips_csv: data/resampled/clips_train.csv
-
+# test paths
 test_data_paths:
-  raw_data_path: 
+  raw_data_path:
     chat_csv: data/raw/chat_test.csv
     clips_csv: data/raw/clips_test.csv
-  processed_data_path: 
+  processed_data_path:
     chat_csv: data/processed/chat_test.csv
     clips_csv: data/processed/clips_test.csv
-  resampled_data_path: 
+  resampled_data_path:
     chat_csv: data/resampled/chat_test.csv
     clips_csv: data/resampled/clips_test.csv
-
+# collect
 data_collector_config:
-  # video_id_train: '1990227660' # Melharucos'es VotV gameplay
-  video_id_train: '2039157631' # UselessMouth Anime Stream 21.01.2024
-  video_id_test: '2036131985' # UselessMouth Lethal Company Stream 18.01.2024
-  # video_id_train: '1996646721' # Winline Media Poker Day 1
-  # video_id_test: '1998428113' # Winline Media Poker Day 3
+  video_id_train: '2039157631'
+  video_id_test: '2036131985'
   n_batches: 100
-
+# process
 processing_config:
   paste_min_words: 3
   window_size: 5
-
 undersample_config:
   random_state: 42
-
+# train
 target: highlight
 actualize_config:
-  enable: False
+  enable: false
   max_zeros: 2
-  
+# mlflow
 mlflow_config:
   remote_server_uri: http://localhost:5000
   mlflow_registry_uri: http://localhost:5000
+experiment_id: '566969222355301129'

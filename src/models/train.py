@@ -1,11 +1,16 @@
+import os
 from typing import List, Optional, Tuple
 
+import click
 import hydra
+import mlflow
 import numpy as np
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
+from hydra import compose, initialize
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from mlflow.models import infer_signature
+from omegaconf import DictConfig, OmegaConf, open_dict
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -14,9 +19,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-import mlflow
-from mlflow.models import infer_signature
-from src.io.utils import read_data_csv
+from src.io.utils import read_config, read_data_csv
 
 load_dotenv(find_dotenv())
 
@@ -89,10 +92,14 @@ def train(config: DictConfig) -> Optional[float]:
     remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]
     mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_registry_uri(remote_registry_uri)
+    print(mlflow.get_tracking_uri())
+    print(mlflow.get_registry_uri())
 
     model_class_components = config.models.model._target_.split(".")
     model_name = model_class_components[-1]
-    mlflow.set_experiment(f"{model_name}")
+    experiment = mlflow.set_experiment(f"{model_name}")
+
+    print("train:", experiment.experiment_id)
 
     model = instantiate(config["models"]["model"])
 
@@ -137,5 +144,25 @@ def train(config: DictConfig) -> Optional[float]:
     return score
 
 
-if __name__ == "__main__":
+def main():
+    # Hydra Multirun hyperparameter tuning
     train()
+
+    print(mlflow.get_tracking_uri())
+    print(mlflow.get_registry_uri())
+
+    with initialize(version_base=None, config_path="../conf"):
+        config = compose(config_name="train")
+    model_class_components = config.models.model._target_.split(".")
+    model_name = model_class_components[-1]
+    experiment = mlflow.get_experiment_by_name(model_name)
+    print("Main:", experiment.experiment_id)
+
+    config = OmegaConf.load("src/conf/params.yaml")
+    OmegaConf.update(config, "experiment_id", experiment.experiment_id)
+    with open("src/conf/params.yaml", "w") as f:
+        OmegaConf.save(config, f)
+
+
+if __name__ == "__main__":
+    main()
