@@ -92,14 +92,10 @@ def train(config: DictConfig) -> Optional[float]:
     remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]
     mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_registry_uri(remote_registry_uri)
-    print(mlflow.get_tracking_uri())
-    print(mlflow.get_registry_uri())
 
     model_class_components = config.models.model._target_.split(".")
     model_name = model_class_components[-1]
-    experiment = mlflow.set_experiment(f"{model_name}")
-
-    print("train:", experiment.experiment_id)
+    mlflow.set_experiment(f"{model_name}")
 
     model = instantiate(config["models"]["model"])
 
