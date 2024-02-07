@@ -1,6 +1,4 @@
-name: XGBClassifier
-params:
-  max_depth: 9
-  n_estimators: 400
-  objective: binary:logistic
-  eval_metric: auc
+models.model.max_depth: range(7, 11, 2)
+models.model.n_estimators: 400
+models.model.objective: binary:logistic
+models.model.eval_metric: auc
