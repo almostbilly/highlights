@@ -1,2 +1,0 @@
-model:
-  _target_: sklearn.linear.LogisticRegression

@@ -116,7 +116,7 @@ def main(config_path, mode):
         random_state = config["undersample_config"]["random_state"]
         chat_resampled = undersample(chat_resampled, random_state)
 
-    # Save resampled and balanced chat data
+    # Save resampled chat data
     chat_resampled.to_csv(resampled_data_path["chat_csv"])
     logger.info("Saving resampled chat data")
 

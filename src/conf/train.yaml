@@ -1,8 +1,9 @@
 defaults:
   - _self_
   - params
-  - models: xgb_clf
-  - search_spaces@hydra.sweeper.params: ${models}
+  - scaler: standard_scaler
+  - model: xgb_clf
+  - search_spaces@hydra.sweeper.params: ${model}
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: grid
 

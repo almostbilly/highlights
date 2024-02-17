@@ -1,6 +1,0 @@
-model:
-  _target_: xgboost.XGBClassifier
-  max_depth: 7
-  n_estimators: 400
-  objective: binary:logistic
-  eval_metric: auc

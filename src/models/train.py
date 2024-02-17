@@ -24,6 +24,17 @@ from src.io.utils import read_config, read_data_csv
 load_dotenv(find_dotenv())
 
 
+class ScalerWrapper(mlflow.pyfunc.PythonModel):
+    def __init__(self, scaler):
+        self.scaler = scaler
+
+    def transform(self, input_data):
+        return self.scaler.transform(input_data)
+
+    def predict(self, context, model_input):
+        pass
+
+
 def construct_intervals(sequence: np.ndarray) -> List[Tuple[int, int]]:
     intervals = []
     start = None
@@ -67,8 +78,7 @@ def eval_metrics(y_test, y_pred):
 @hydra.main(version_base=None, config_path="../conf", config_name="train")
 def train(config: DictConfig) -> Optional[float]:
     """
-    Contains an example training pipeline.
-    Can additionally evaluate model on a testset, using best weights achieved during training.
+    Training pipeline for hyperparameters tuning.
 
     Args:
         config (DictConfig): Configuration composed by Hydra.
@@ -93,11 +103,9 @@ def train(config: DictConfig) -> Optional[float]:
     mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_registry_uri(remote_registry_uri)
 
-    model_class_components = config.models.model._target_.split(".")
+    model_class_components = config.model._target_.split(".")
     model_name = model_class_components[-1]
     mlflow.set_experiment(f"{model_name}")
-
-    model = instantiate(config["models"]["model"])
 
     with mlflow.start_run(nested=True):
         optimized_metric = config["optimized_metric"]
@@ -110,8 +118,14 @@ def train(config: DictConfig) -> Optional[float]:
         ]:
             raise ValueError("Metric for hyperparameter optimization not found!")
 
+        scaler = instantiate(config["scaler"])
+        X_train = scaler.fit_transform(X_train)
+
+        model = instantiate(config["model"])
+
         model.fit(X_train, y_train)
 
+        X_test = scaler.transform(X_test)
         y_pred = model.predict(X_test)
 
         max_zeros = 0
@@ -130,6 +144,9 @@ def train(config: DictConfig) -> Optional[float]:
         mlflow.log_metric("f1", metrics["f1"])
         mlflow.log_metric("roc-auc", metrics["roc_auc"])
 
+        scaler_wrapper = ScalerWrapper(scaler)
+        mlflow.pyfunc.log_model(python_model=scaler_wrapper, artifact_path="scaler")
+
         signature = infer_signature(X_train, y_pred)
 
         flavor = model_class_components[0]
@@ -144,15 +161,11 @@ def main():
     # Hydra Multirun hyperparameter tuning
     train()
 
-    print(mlflow.get_tracking_uri())
-    print(mlflow.get_registry_uri())
-
     with initialize(version_base=None, config_path="../conf"):
         config = compose(config_name="train")
-    model_class_components = config.models.model._target_.split(".")
+    model_class_components = config.model._target_.split(".")
     model_name = model_class_components[-1]
     experiment = mlflow.get_experiment_by_name(model_name)
-    print("Main:", experiment.experiment_id)
 
     config = OmegaConf.load("src/conf/params.yaml")
     OmegaConf.update(config, "experiment_id", experiment.experiment_id)

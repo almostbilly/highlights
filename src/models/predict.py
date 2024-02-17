@@ -10,7 +10,7 @@ from hydra import compose, initialize
 from src.data.parser.chat import ChatParser
 from src.features.resample import add_lag_lead
 from src.features.transformers.chat import ChatTransformer
-from src.models.train import construct_intervals
+from src.models.train import actualize, construct_intervals
 
 log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -32,7 +32,7 @@ def format_time(seconds: int) -> str:
     return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
 
-async def predict(video_id: int):
+async def predict(video_id: int, act_results: bool = True):
     logger = logging.getLogger("PREDICT")
 
     logger.info("Reading config")
@@ -55,8 +55,6 @@ async def predict(video_id: int):
     logger.info("Resampling chat data")
     chat_resampled = chat.resample()
 
-    # scaler = load_scaler
-
     logger.info("Adding lag and lead")
     chat_resampled = add_lag_lead(chat_resampled, chat_resampled.columns, 1, 1)
     chat_resampled = chat_resampled.drop(
@@ -69,16 +67,27 @@ async def predict(video_id: int):
     mlflow.set_registry_uri(remote_registry_uri)
 
     client = mlflow.MlflowClient()
-    model_name = config["models"]["model"]["_target_"].split(".")[-1]
+    model_name = config["model"]["_target_"].split(".")[-1]
     try:
         last_registered_model = client.search_model_versions(f"name='{model_name}'")[0]
     except Exception:
         logger.exception("No available model")
-    model_version = dict(last_registered_model)["version"]
+
+    run_id = last_registered_model.run_id
+    scaler_uri = f"runs:/{run_id}/scaler"
+    scaler = mlflow.pyfunc.load_model(scaler_uri).unwrap_python_model()
+
+    chat_resampled_scaled = scaler.transform(chat_resampled)
+
+    model_version = last_registered_model.version
     model_uri = f"models:/{model_name}/{model_version}"
     model = mlflow.pyfunc.load_model(model_uri)
 
-    prediction = model.predict(chat_resampled)
+    prediction = model.predict(chat_resampled_scaled)
+
+    if act_results:
+        max_zeros = config["actualize_config"]["max_zeros"]
+        prediction = actualize(prediction, max_zeros)
 
     highlights_df = make_highlight_intervals(
         prediction, config["processing_config"]["window_size"]

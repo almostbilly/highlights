@@ -1,12 +1,11 @@
 import hydra
-from omegaconf import DictConfig
-
 import mlflow
+from omegaconf import DictConfig
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="train")
 def register_best_model(config: DictConfig):
-    model_name = config["models"]["model"]["_target_"].split(".")[-1]
+    model_name = config["model"]["_target_"].split(".")[-1]
     optimized_metric = config["optimized_metric"]
 
     remote_server_uri = config["mlflow_config"]["remote_server_uri"]
