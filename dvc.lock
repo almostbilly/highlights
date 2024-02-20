@@ -53,7 +53,7 @@ stages:
       size: 1372
     params:
       src/conf/params.yaml:
-        processing_config.paste_min_words: 3
+        processing_config.shortness_threshold: 3
         processing_config.window_size: 5
     outs:
     - path: data/processed/chat_train.csv
@@ -73,7 +73,7 @@ stages:
       size: 1372
     params:
       src/conf/params.yaml:
-        processing_config.paste_min_words: 3
+        processing_config.shortness_threshold: 3
         processing_config.window_size: 5
     outs:
     - path: data/processed/chat_test.csv

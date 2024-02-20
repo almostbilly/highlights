@@ -30,7 +30,8 @@ stages:
     cmd: python src/features/process.py src/conf/params.yaml train
     params:
       - src/conf/params.yaml:
-        - processing_config.paste_min_words
+        - processing_config.shortness_threshold
+        - processing_config.count_window
         - processing_config.window_size
     deps:
       - src/features/process.py
@@ -42,7 +43,8 @@ stages:
     cmd: python src/features/process.py src/conf/params.yaml test
     params:
       - src/conf/params.yaml:
-        - processing_config.paste_min_words
+        - processing_config.shortness_threshold
+        - processing_config.count_window
         - processing_config.window_size
     deps:
       - src/features/process.py

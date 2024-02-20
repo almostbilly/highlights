@@ -1,7 +1,5 @@
-import os
 from typing import List, Optional, Tuple
 
-import click
 import hydra
 import mlflow
 import numpy as np
@@ -10,7 +8,7 @@ from dotenv import find_dotenv, load_dotenv
 from hydra import compose, initialize
 from hydra.utils import instantiate
 from mlflow.models import infer_signature
-from omegaconf import DictConfig, OmegaConf, open_dict
+from omegaconf import DictConfig, OmegaConf
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -18,8 +16,9 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from tsai.all import TSUnwindowedDataset
 
-from src.io.utils import read_config, read_data_csv
+from src.io.utils import read_data_csv
 
 load_dotenv(find_dotenv())
 
@@ -59,9 +58,19 @@ def actualize(sequence: np.ndarray, max_zeros: int) -> np.ndarray:
     return new_sequence
 
 
-def split_data(df: pd.DataFrame, target: str) -> Tuple[pd.DataFrame, pd.Series]:
-    X = df.drop(target, axis=1)
-    y = df[target]
+def load_data(config: DictConfig, mode: str = "train"):
+    data_path = config[f"{mode}_data_paths"]["resampled_data_path"]["chat_csv"]
+    labels_path = config[f"{mode}_data_paths"]["labels_path"]
+    X = read_data_csv(data_path, dates_cols=["time"]).set_index("time")
+    y = pd.read_csv(labels_path, header=None)
+    return X, y
+
+
+def apply_sliding_window(X, y, window_size, stride):
+    X = TSUnwindowedDataset(X.to_numpy(), window_size=window_size, stride=stride)[:][
+        0
+    ].data
+    y = np.asarray(y).squeeze(1)
     return X, y
 
 
@@ -86,17 +95,18 @@ def train(config: DictConfig) -> Optional[float]:
     Returns:
         Optional[float]: Metric score for hyperparameter optimization.
     """
-    chat_train_path = config["train_data_paths"]["resampled_data_path"]["chat_csv"]
-    chat_test_path = config["test_data_paths"]["resampled_data_path"]["chat_csv"]
-    target = config["target"]
+    window_size = config["processing_config"]["window_size"]
 
-    chat_train = read_data_csv(chat_train_path, dates_cols=["time"])
-    chat_train = chat_train.set_index("time")
-    chat_test = read_data_csv(chat_test_path, dates_cols=["time"])
-    chat_test = chat_test.set_index("time")
+    X_train_df, y_train_df = load_data(config, mode="train")
+    X_test_df, y_test_df = load_data(config, mode="test")
 
-    X_train, y_train = split_data(chat_train, target)
-    X_test, y_test = split_data(chat_test, target)
+    # SlidingWindow(window_size=seq_len): (full_seq_len, n_features) -> (n_seq, n_features, seq_len)
+    X_train, y_train = apply_sliding_window(
+        X_train_df, y_train_df, window_size=window_size, stride=window_size
+    )
+    X_test, y_test = apply_sliding_window(
+        X_test_df, y_test_df, window_size=window_size, stride=window_size
+    )
 
     remote_server_uri = config["mlflow_config"]["remote_server_uri"]
     remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]

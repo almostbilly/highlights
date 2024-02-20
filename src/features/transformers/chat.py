@@ -14,7 +14,7 @@ class ChatTransformer:
     def build_features(self) -> "ChatTransformer":
         df = self.df
         # initialize params
-        min_words = self.config["paste_min_words"]
+        min_words = self.config["shortness_threshold"]
         # replace NaN values with ""
         df["text"] = df["text"].fillna("")
         # extract unique emotes per message
@@ -27,21 +27,26 @@ class ChatTransformer:
         df["mention"] = df["text"].apply(lambda x: len(re.findall(r"@\b\w+", x)))
         return self
 
-    def resample(self) -> pd.DataFrame:
+    def resample(self):
         df = self.df
-        window_size = self.config["window_size"]
-        freq = str(window_size) + "s"
-        resampled = df.resample(freq, on="time")
+        df = df.set_index("time")
+        min_words = self.config["shortness_threshold"]
+        count_window = self.config["count_window"]
+        freq = str(count_window) + "s"
+        f = df.index.floor(freq)
+        df_grouped = df.groupby(f)
         df_resampled = pd.concat(
             [
-                resampled["text"].agg(lambda x: sum(x.str.split().str.len() < 3)),
-                resampled["unique_emotes"].agg(
+                df_grouped["text"].agg(
+                    lambda x: sum(x.str.split().str.len() < min_words)
+                ),
+                df_grouped["unique_emotes"].agg(
                     lambda x: len(list(itertools.chain.from_iterable(x)))
                 ),
-                resampled["emotes"].count(),
-                resampled["author"].nunique(),
-                resampled["paste"].sum(),
-                resampled["mention"].sum(),
+                df_grouped["emotes"].count(),
+                df_grouped["author"].nunique(),
+                df_grouped["paste"].sum(),
+                df_grouped["mention"].sum(),
             ],
             axis=1,
         )
