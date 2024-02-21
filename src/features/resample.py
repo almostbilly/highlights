@@ -120,6 +120,8 @@ def main(config_path, mode):
     end_time = start_time + pd.DateOffset(
         hours=duration_dt.hour, minutes=duration_dt.minute, seconds=duration_dt.second
     )
+    end_time = end_time.floor(freq)
+
     labels, time_intervals = get_classification_labels(
         start_time, end_time, freq, merged_intervals
     )
@@ -158,7 +160,9 @@ def main(config_path, mode):
         )
     else:
         # Extrapolate begin and end context windows chat data
-        count_window_idx = pd.date_range(start_time, end_time, freq=count_window)
+        count_window_idx = pd.date_range(
+            start_time, end_time, freq=count_window, inclusive="left"
+        )
 
     # Resample processed chat data
     logger.info("Resampling chat data")
