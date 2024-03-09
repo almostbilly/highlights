@@ -1,4 +1,3 @@
-mode: train
 train_data_paths:
   raw_data_path:
     chat_csv: data/raw/chat_train.csv

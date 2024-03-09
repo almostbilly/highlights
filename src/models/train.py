@@ -1,3 +1,4 @@
+from ast import Raise
 from typing import List, Optional, Tuple
 
 import hydra
@@ -16,7 +17,10 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from tsai.all import TSUnwindowedDataset
+from sklearn.utils.discovery import all_estimators
+from tsai.all import TSUnwindowedDataset, combine_split_data
+from tsfresh.feature_extraction.settings import MinimalFCParameters
+from tsfresh.transformers import FeatureAugmenter
 
 from src.io.utils import read_data_csv
 
@@ -66,7 +70,15 @@ def load_data(config: DictConfig, mode: str = "train"):
     return X, y
 
 
-def apply_sliding_window(X, y, window_size, stride):
+def to_2d(X, y, window_size):
+    ids = np.repeat(np.arange(len(y)), window_size)
+    X.insert(0, "id", ids)
+    X = X.reset_index()
+    y = np.asarray(y).squeeze(1)
+    return X, y
+
+
+def to_3d(X, y, window_size, stride):
     X = TSUnwindowedDataset(X.to_numpy(), window_size=window_size, stride=stride)[:][
         0
     ].data
@@ -84,99 +96,118 @@ def eval_metrics(y_test, y_pred):
     return metrics
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="train")
-def train(config: DictConfig) -> Optional[float]:
-    """
-    Training pipeline for hyperparameters tuning.
+def main():
+    with initialize(version_base=None, config_path="../conf"):
+        config = compose(config_name="train")
 
-    Args:
-        config (DictConfig): Configuration composed by Hydra.
-
-    Returns:
-        Optional[float]: Metric score for hyperparameter optimization.
-    """
     window_size = config["processing_config"]["window_size"]
+    model_class_components = config.model._target_.split(".")
+    model_name = model_class_components[-1]
 
     X_train_df, y_train_df = load_data(config, mode="train")
     X_test_df, y_test_df = load_data(config, mode="test")
 
-    # SlidingWindow(window_size=seq_len): (full_seq_len, n_features) -> (n_seq, n_features, seq_len)
-    X_train, y_train = apply_sliding_window(
-        X_train_df, y_train_df, window_size=window_size, stride=window_size
-    )
-    X_test, y_test = apply_sliding_window(
-        X_test_df, y_test_df, window_size=window_size, stride=window_size
-    )
+    classic_models = [clf[0] for clf in all_estimators("classifier")] + [
+        "XGBClassifier"
+    ]
+
+    if model_name in classic_models:
+        # Transform data into tabular (tsfresh) format
+        X_train, y_train = to_2d(X_train_df, y_train_df, window_size=window_size)
+        X_test, y_test = to_2d(X_test_df, y_test_df, window_size=window_size)
+
+        X_train_tmp = pd.DataFrame(index=pd.Series(y_train).index)
+        X_test_tmp = pd.DataFrame(index=pd.Series(y_test).index)
+        augmenter = FeatureAugmenter(
+            column_id="id",
+            column_sort="time",
+            default_fc_parameters=MinimalFCParameters(),
+        )
+        augmenter.set_timeseries_container(X_train)
+        X_train = augmenter.transform(X_train_tmp)
+        augmenter.set_timeseries_container(X_test)
+        X_test = augmenter.transform(X_test_tmp)
+
+    else:
+        # Transform data into tensor format: (full_seq_len, n_features) -> (n_seq, n_features, seq_len)
+        X_train, y_train = to_3d(
+            X_train_df, y_train_df, window_size=window_size, stride=window_size
+        )
+        X_test, y_test = to_3d(
+            X_test_df, y_test_df, window_size=window_size, stride=window_size
+        )
+        X, y, splits = combine_split_data([X_train, X_test], [y_train, y_test])
 
     remote_server_uri = config["mlflow_config"]["remote_server_uri"]
     remote_registry_uri = config["mlflow_config"]["mlflow_registry_uri"]
     mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_registry_uri(remote_registry_uri)
-
-    model_class_components = config.model._target_.split(".")
-    model_name = model_class_components[-1]
     mlflow.set_experiment(f"{model_name}")
 
-    with mlflow.start_run(nested=True):
-        optimized_metric = config["optimized_metric"]
-        if optimized_metric not in [
-            "accuracy",
-            "f1",
-            "precision",
-            "recall",
-            "roc-auc",
-        ]:
-            raise ValueError("Metric for hyperparameter optimization not found!")
+    optimized_metric = config["optimized_metric"]
+    if optimized_metric not in [
+        "accuracy",
+        "f1",
+        "precision",
+        "recall",
+        "roc-auc",
+    ]:
+        raise ValueError("Metric for hyperparameter optimization not found!")
 
-        scaler = instantiate(config["scaler"])
-        X_train = scaler.fit_transform(X_train)
+    @hydra.main(version_base=None, config_path="../conf", config_name="train")
+    def _train_tuning(config: DictConfig) -> Optional[float]:
+        """
+        Training pipeline for hyperparameters tuning.
 
-        model = instantiate(config["model"])
+        Args:
+            config (DictConfig): Configuration composed by Hydra.
 
-        model.fit(X_train, y_train)
+        Returns:
+            Optional[float]: Metric score for hyperparameter optimization.
+        """
 
-        X_test = scaler.transform(X_test)
-        y_pred = model.predict(X_test)
+        with mlflow.start_run(nested=True):
+            model = instantiate(config["model"])
 
-        max_zeros = 0
-        if config["actualize_config"]["enable"]:
-            max_zeros = config["actualize_config"]["max_zeros"]
-            y_pred = actualize(y_pred, max_zeros)
+            model.fit(X_train, y_train)
 
-        mlflow.log_params(model.get_params())
-        mlflow.log_param("max_zeros", max_zeros)
+            # X_test = scaler.transform(X_test)
 
-        metrics = eval_metrics(y_test, y_pred)
+            y_pred = model.predict(X_test)
 
-        mlflow.log_metric("accuracy", metrics["accuracy"])
-        mlflow.log_metric("precision", metrics["precision"])
-        mlflow.log_metric("recall", metrics["recall"])
-        mlflow.log_metric("f1", metrics["f1"])
-        mlflow.log_metric("roc-auc", metrics["roc_auc"])
+            max_zeros = 0
+            if config["actualize_config"]["enable"]:
+                max_zeros = config["actualize_config"]["max_zeros"]
+                y_pred = actualize(y_pred, max_zeros)
 
-        scaler_wrapper = ScalerWrapper(scaler)
-        mlflow.pyfunc.log_model(python_model=scaler_wrapper, artifact_path="scaler")
+            mlflow.log_params(model.get_params())
+            mlflow.log_param("max_zeros", max_zeros)
 
-        signature = infer_signature(X_train, y_pred)
+            metrics = eval_metrics(y_test, y_pred)
 
-        flavor = model_class_components[0]
-        getattr(mlflow, flavor).log_model(model, "model", signature=signature)
+            mlflow.log_metric("accuracy", metrics["accuracy"])
+            mlflow.log_metric("precision", metrics["precision"])
+            mlflow.log_metric("recall", metrics["recall"])
+            mlflow.log_metric("f1", metrics["f1"])
+            mlflow.log_metric("roc-auc", metrics["roc_auc"])
 
-        score = metrics[optimized_metric]
+            scaler_wrapper = ScalerWrapper(augmenter)
+            mlflow.pyfunc.log_model(python_model=scaler_wrapper, artifact_path="scaler")
 
-    return score
+            signature = infer_signature(X_train, y_pred)
 
+            flavor = model_class_components[0]
+            getattr(mlflow, flavor).log_model(model, "model", signature=signature)
 
-def main():
-    # Hydra Multirun hyperparameter tuning
-    train()
+            score = metrics[optimized_metric]
 
-    with initialize(version_base=None, config_path="../conf"):
-        config = compose(config_name="train")
-    model_class_components = config.model._target_.split(".")
-    model_name = model_class_components[-1]
+        return score
+
+    # Hydra multi-run hyperparameter tuning
+    _train_tuning()
+
+    # Save best run experiment_id
     experiment = mlflow.get_experiment_by_name(model_name)
-
     config = OmegaConf.load("src/conf/params.yaml")
     OmegaConf.update(config, "experiment_id", experiment.experiment_id)
     with open("src/conf/params.yaml", "w") as f:
